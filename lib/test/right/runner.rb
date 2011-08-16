@@ -6,14 +6,18 @@ module Test
     class Runner
       attr_reader :results, :widget_classes
 
-      def initialize(config, widgets, features)
+      # Pass features to create a runner to run them all
+      # Otherwise create a runner to run individual tests
+      def initialize(config, widgets, features=nil)
         @config = config
         @widget_classes = widgets
         @features = features
         @results = {}
-        @pool = Threadz::ThreadPool.new(:initial_size => 2, :maximum_size => 2)
-        @result_queue = Queue.new
         @data_template = config[:data] || {}
+        @result_queue = Queue.new
+        if @features
+          @pool = Threadz::ThreadPool.new(:initial_size => 2, :maximum_size => 2)
+        end
       end
 
       def run
@@ -46,20 +50,27 @@ module Test
         methods.sort_by{|x| rand(10000)}.each do |method_name|
           if method_name =~ /^test_/
             @batch << Proc.new do
-              begin
-                method = method_name.to_sym
-                run_test(feature, method_name.to_sym)
-
-                @result_queue << [feature, method, true]
-              rescue => e
-                @result_queue << [feature, method, e]
-              end
+              method = method_name.to_sym
+              run_test(feature, method)
             end
           end
         end
       end
 
       def run_test(feature, method)
+        begin
+          _run_test(feature, method.to_sym)
+
+          @result_queue << [feature, method, true]
+          true
+        rescue => e
+          @result_queue << [feature, method, e]
+          raise
+          false
+        end
+      end
+
+      def _run_test(feature, method)
         if $MOCK_DRIVER
           driver = MockDriver.new(@config)
         else
