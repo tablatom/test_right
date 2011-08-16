@@ -60,15 +60,10 @@ module Test
       end
 
       def run_setup
-        if File.exists? "setup.rb"
-          unless system("./setup.rb")
-            raise ConfigurationError, "Setup failed"
-          end
-        elsif File.exists? "test/right/setup.rb"
-          unless system("test/right/setup.rb")
-            raise ConfigurationError, "Setup failed"
-          end
-        end
+        load "setup.rb" if File.exists? "setup.rb"
+      rescue => e
+        puts "Error running setup.rb"
+        raise
       end
 
       def load_config
