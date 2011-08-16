@@ -1,3 +1,5 @@
+require 'irb'
+
 module Test
   module Right
     class Widget
@@ -63,8 +65,8 @@ module Test
       end
 
       def self.inherited(subclass)
-        @subclasses ||= [] 
-        @subclasses << subclass 
+        @subclasses ||= []
+        @subclasses << subclass
         subclass.instance_eval do
           @selectors = {}
           @location = nil
@@ -124,7 +126,7 @@ module Test
       def clear(selector_name)
         get_element(selector_name).clear
       end
-      
+
       def click(selector_name)
         get_element(selector_name).click
       end
@@ -237,12 +239,24 @@ module Test
           if target.nil?
             raise WidgetNotPresentError, "#{self.class.name} with name \"#{name}\" not found"
           end
-          
+
           return target
         else
           raise IAmConfusedError
         end
       end
+
+      def debug
+        IRB.init_config(nil)
+        IRB.conf[:PROMPT_MODE] = :SIMPLE
+        irb = IRB::Irb.new(IRB::WorkSpace.new(self))
+        IRB.conf[:MAIN_CONTEXT] = irb.context
+        catch(:IRB_EXIT) do
+          irb.eval_input
+        end
+        puts "\nContinuing..."
+      end
+
     end
   end
 end
